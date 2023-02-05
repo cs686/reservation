@@ -67,13 +67,17 @@ message GetResponse {
     Reservation reservation = 1;
 }
 
-message QueryRequest {
+message ReservationQuery {
     string user_id = 1;
     ReservationStatus status = 2;
 
     string resource_id = 3;
     google.protobuf.Timestamp start = 4;
     google.protobuf.Timestamp end = 5;
+}
+
+message QueryRequest {
+    ReservationQuery query = 1;
 }
 
 message ListenRequest {}

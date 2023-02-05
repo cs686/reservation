@@ -1,2 +1,2 @@
 #[allow(clippy::all)]
-mod reservation;
+pub mod reservation;

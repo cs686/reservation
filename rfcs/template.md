@@ -124,9 +124,8 @@ Why are we doing this? What use cases does it support? What is the expected outc
 
 ```sql
 CREATE SCHEMA rsvp;
-
-CREATE TYPE rsvp.reservation_status AS ENUM('unknown','pending', 'confirmed', 'canceled')
-CREATE TYPE rsvp.reservation_update_type AS ENUM('unknown','insert', 'update', 'delete')
+CREATE TYPE rsvp.reservation_status AS ENUM('unknown','pending', 'confirmed', 'blocked')
+CREATE TYPE rsvp.reservation_update_type AS ENUM('unknown','create', 'update', 'delete')
 
 CREATE TABLE rsvp.reservations (
     id uuid NOT NULL default uuid_generate_v4(),
@@ -134,11 +133,17 @@ CREATE TABLE rsvp.reservations (
     status reservation_status NOT NULL default 'pending',
     resource_id varchar(64) NOT NULL,
     timespan tstzrange NOT NULL,
-    note text,
+    note TEXT,
 
     CONSTRAINT reservations_pkey PRIMARY KEY (id),
     CONSTRAINT reservations_conflict EXCLUDE USING gist (resource_id WITH =, timespan WITH &&)
 );
+
+CREATE INDEX reservations_resource_id_idx ON rsvp.reservations (resource_id);
+CREATE INDEX reservations_user_id_idx ON rsvp.reservations (user_id);
+
+CREATE OR REPLACE FUNCTION rsvp.query(uid text, rid text, during: tstzrange)
+RETURNS TABLE rsvp.reservations AS $$ $$ LANGUAGE plpgsql;
 
 CREATE TABLE rsvp.reservation_changes (
     id SERIAL NOT NULL ,
@@ -146,10 +151,6 @@ CREATE TABLE rsvp.reservation_changes (
     op rsvp.reservation_update_type NOT NULL
 );
 
-CREATE INDEX reservations_resource_id_idx ON rsvp.reservations (resource_id);
-CREATE INDEX reservations_user_id_idx ON rsvp.reservations (user_id);
-CREATE OR REPLACE FUNCTION rsvp.query(uid text, rid text, during: tstzrange)
-RETURNS TABLE rsvp.reservations AS $$ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION rsvp.reservations_trigger() RETURNS TRIGGER AS
 $$
 BEGIN
